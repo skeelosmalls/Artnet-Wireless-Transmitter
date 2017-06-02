@@ -1,5 +1,6 @@
 
 /*
+ -- pin pointed to move only DMX channel 512
 Chaned some things for Arduino 1.0
 
 ARTNET SENDER
@@ -20,7 +21,7 @@ You may find whitecat interresting because its theatre based logic ( cuelist and
 http://www.le-chat-noir-numerique.fr
 karistouf@yahoo.fr
 */
-#define VERBOSE
+//#define VERBOSE
 #include <SPI.h>         // needed for Arduino versions later than 0018
 #include <ESP8266WiFi.h>  // uses wemos D1 R2
 #include <WiFiUdp.h>
@@ -37,7 +38,7 @@ String MAC_address;
 //TO EDIT:
 
 char wifiSSID[30] = "SSID";
-char wifiPass[30] = "PASSWORD";
+char wifiPass[30] = "PASS";
 
 char nodeName[30] = "artNetNode1";
 
@@ -53,7 +54,7 @@ byte mac[] = {  144, 162, 218, 00, 16, 96  };//the mac adress of ethernet shield
 //byte ip[] = {   192,169,0,95 };// the IP adress of your device, that should be in same universe of the network you are using, here: 192.168.1.x
 
 IPAddress ap_ip(2, 0, 0, 10);
-IPAddress ip(192,169,0,95);
+IPAddress ip(192,168,0,42);
 IPAddress subnet(255, 0, 0, 0);
 IPAddress broadcast_ip(ip[0], 255, 255, 255);
 
@@ -171,11 +172,11 @@ void setup() {
 void loop() {
   
    check_arduino_inputs();
+   
    construct_arnet_packet();
    
    eUDP.beginPacket(destination_Ip, localPort);
-   eUDP.write(ArtDmxBuffer,(art_net_header_size+number_of_channels+1)); // was Udp.sendPacket
-   
+   eUDP.write(ArtDmxBuffer,(art_net_header_size+number_of_channels+1)); 
    eUDP.endPacket();
    #ifdef VERBOSE
     Serial.print("ArtDmxBuffer sent ");
@@ -189,15 +190,16 @@ void check_arduino_inputs()
  //data from arduino aquisition
 
   int temp_val=0;
-  for(int i=0;i<6;i++)//reads the 6 analogic inputs and set the data from 1023 steps to 255 steps (dmx)
-  {
-    temp_val=analogRead(i); 
-    buffer_dmx[i]=byte(temp_val/4.01);
+//  for(int i=511;i<512;i++)//reads the 6 analogic inputs and set the data from 1023 steps to 255 steps (dmx)
+//  {
+    temp_val=analogRead(0); 
+    buffer_dmx[511]=byte(temp_val/4.01);
     #ifdef VERBOSE
-    Serial.print("temp_val: ");
-    Serial.println(temp_val);
+    Serial.print("temp_val: buffer_dmx[i]");
+    Serial.println(buffer_dmx[511]);
     #endif
-  }
+//  }
+  
 }
 
 
@@ -210,7 +212,7 @@ void construct_arnet_packet()
     }   
 
     //Operator code low byte first  
-     ArtDmxBuffer[8]=OpOutput;
+     ArtDmxBuffer[8]= OpOutput;
      ArtDmxBuffer[9]= OpOutput >> 8;
      //protocole
      ArtDmxBuffer[10]=0;
@@ -226,10 +228,14 @@ void construct_arnet_packet()
      ArtDmxBuffer[16] = number_of_channels>> 8;
      ArtDmxBuffer[17] = number_of_channels;
    
-     for (int t= 0;t<number_of_channels;t++)
-     {
-       ArtDmxBuffer[t+art_net_header_size+1]=buffer_dmx[t];    
-     }
+//     for (int t=0;t<number_of_channels;t++)
+//     {
+       ArtDmxBuffer[511+art_net_header_size+1]=buffer_dmx[511];    
+       #ifdef VERBOSE
+          Serial.print("temp_val: buffer_dmx[t]");
+          Serial.println(buffer_dmx[511]);
+        #endif
+//     }
      
 }
 
